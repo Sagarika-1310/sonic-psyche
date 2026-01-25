@@ -52,7 +52,7 @@ def main():
     cur = conn.cursor()
 
     for year in range(START_YEAR, END_YEAR + 1):
-        print(f"Fetching Billboard Year-End Top 50 for {year}...")
+        print(f"Fetching Billboard Year-End Top 100 for {year}...")
         try:
             df = fetch_year_end_chart(year)
 

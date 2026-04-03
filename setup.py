@@ -44,7 +44,7 @@ def verify_tables():
     print("═" * 55)
     print("\n  Ready. Run collectors in order:")
     print("    python collectors/01_billboard.py")
-    print("    python collectors/02_deezer.py")
+    print("    python collectors/02_itunes.py")
     print("    python collectors/03_lastfm.py")
     print("    python collectors/04_musicbrainz.py")
     print("    python collectors/05_audio_librosa.py")
@@ -55,7 +55,66 @@ def verify_tables():
     conn.close()
 
 
+def rename_columns():
+    """Rename deezer columns in songs table to itunes"""
+    conn = get_conn()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("ALTER TABLE songs RENAME COLUMN status_deezer TO status_itunes")
+
+        conn.commit()
+        print("Columns renamed successfully.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
+
+def delete_tables(tables):
+    conn = get_conn()
+    cursor = conn.cursor()
+    try:
+        for table in tables:
+            print(f"Deleting {table} from db...")
+            cursor.execute(f"DROP TABLE {table}")
+
+            conn.commit()
+            print(f"Deleted {table} successfully.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
+
+def rename_sqlite_index():
+    conn = get_conn()
+    cursor = conn.cursor()
+
+    try:
+        # 1. Drop the old index
+        cursor.execute(f"DROP INDEX IF EXISTS idx_songs_deezer")
+
+        # 2. Create the new index with the desired name
+        cursor.execute(f"CREATE INDEX idx_songs_itunes ON songs(status_itunes)")
+
+        conn.commit()
+        print(f"Index successfully renamed to idx_songs_itunes")
+    except Exception as e:
+        print(f"Error: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     print("Creating database and all tables...")
     init_db()
     verify_tables()
+    # print("Renaming deezer columns to itunes columns in songs table...")
+    # rename_columns()
+    # print("Deleting tables...")
+    # delete_tables(["deezer_meta"])
+    # rename_sqlite_index()

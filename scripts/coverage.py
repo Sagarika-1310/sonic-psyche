@@ -46,7 +46,7 @@ def run():
     ).fetchall()
 
     print(f"\n  {'Year':>4}  {'Period':14}  {'Songs':>5}  "
-          f"{'Deezer':>6}  {'LastFM':>6}  {'MB':>4}  "
+          f"{'Itunes':>6}  {'LastFM':>6}  {'MB':>4}  "
           f"{'Librosa':>7}  {'Essentia':>8}  {'Lyrics':>6}")
     print("  " + "─" * 68)
 
@@ -57,7 +57,7 @@ def run():
             SELECT
                 period,
                 COUNT(*) as total,
-                SUM(CASE WHEN status_deezer  = 1 THEN 1 ELSE 0 END) as deezer,
+                SUM(CASE WHEN status_itunes  = 1 THEN 1 ELSE 0 END) as deezer,
                 SUM(CASE WHEN status_lastfm  = 1 THEN 1 ELSE 0 END) as lastfm,
                 SUM(CASE WHEN status_mb      = 1 THEN 1 ELSE 0 END) as mb,
                 SUM(CASE WHEN status_librosa = 1 THEN 1 ELSE 0 END) as librosa,
@@ -74,7 +74,7 @@ def run():
 
         n = r["total"]
         print(f"  {year:>4}  {r['period']:14}  {n:>5}  "
-              f"  {pct_str(r['deezer'], n)}  "
+              f"  {pct_str(r['itunes'], n)}  "
               f"  {pct_str(r['lastfm'], n)}  "
               f"  {pct_str(r['mb'], n)}  "
               f"  {pct_str(r['librosa'], n)}  "
@@ -86,7 +86,7 @@ def run():
     totals = conn.execute("""
         SELECT
             COUNT(*) as total,
-            SUM(CASE WHEN status_deezer  = 1 THEN 1 ELSE 0 END) as deezer,
+            SUM(CASE WHEN status_itunes  = 1 THEN 1 ELSE 0 END) as deezer,
             SUM(CASE WHEN status_lastfm  = 1 THEN 1 ELSE 0 END) as lastfm,
             SUM(CASE WHEN status_mb      = 1 THEN 1 ELSE 0 END) as mb,
             SUM(CASE WHEN status_librosa = 1 THEN 1 ELSE 0 END) as librosa,
@@ -97,7 +97,7 @@ def run():
 
     n = totals["total"]
     print(f"  TOTAL              All   {n:>5}  "
-          f"  {100 * totals['deezer'] / n:3.0f}%   "
+          f"  {100 * totals['itunes'] / n:3.0f}%   "
           f"  {100 * totals['lastfm'] / n:3.0f}%   "
           f"  {100 * totals['mb'] / n:3.0f}%   "
           f"  {100 * totals['librosa'] / n:3.0f}%   "
@@ -107,14 +107,14 @@ def run():
     # ── Songs with FULL data (all 6 sources) ──────────────────────────────────
     full = conn.execute("""
         SELECT COUNT(*) FROM songs
-        WHERE status_deezer=1 AND status_lastfm=1
+        WHERE status_itunes=1 AND status_lastfm=1
           AND status_mb=1 AND status_librosa=1 AND status_lyrics=1
     """).fetchone()[0]
 
     # Without essentia (optional)
     near_full = conn.execute("""
         SELECT COUNT(*) FROM songs
-        WHERE status_deezer=1 AND status_lastfm=1
+        WHERE status_itunes=1 AND status_lastfm=1
           AND status_librosa=1 AND status_lyrics=1
     """).fetchone()[0]
 
@@ -122,7 +122,7 @@ def run():
           f"({100 * full / n:.1f}%)")
     print(f"  Songs with core 4 sources:        {near_full}/{n}  "
           f"({100 * near_full / n:.1f}%)")
-    print(f"  (Core 4 = Deezer + LastFM + Librosa + Lyrics)")
+    print(f"  (Core 4 = Itunes + LastFM + Librosa + Lyrics)")
 
     # ── Per-period summary ────────────────────────────────────────────────────
     print("\n" + "═" * 72)
@@ -164,8 +164,8 @@ def run():
     print("═" * 72)
 
     steps = [
-        (totals["deezer"] == 0, "1", "python collectors/01_billboard.py"),
-        (totals["deezer"] == 0, "2", "python collectors/02_deezer.py"),
+        (totals["itunes"] == 0, "1", "python collectors/01_billboard.py"),
+        (totals["itunes"] == 0, "2", "python collectors/02_itunes.py"),
         (totals["lastfm"] == 0, "3", "python collectors/03_lastfm.py"),
         (totals["mb"] == 0, "4", "python collectors/04_musicbrainz.py"),
         (totals["librosa"] == 0, "5", "python collectors/05_audio_librosa.py"),

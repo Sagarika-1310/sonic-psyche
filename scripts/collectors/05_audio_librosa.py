@@ -1,7 +1,7 @@
 """
 collectors/05_audio_librosa.py
 ─────────────────────────────────────────────────────────────────────────────
-Downloads Deezer 30-second audio previews and extracts features using librosa.
+Downloads Itunes 30-second audio previews and extracts features using librosa.
 
 Features extracted (see audio_librosa table in db.py for descriptions):
   Rhythm:     tempo, beat_regularity, onset_strength
@@ -12,7 +12,7 @@ Features extracted (see audio_librosa table in db.py for descriptions):
   Derived:    harmonic_ratio, acousticness_approx, speechiness_approx
 
 Note on 30-second previews:
-  Deezer previews are always the most representative section (hook/chorus).
+  Itunes previews are always the most representative section (hook/chorus).
   Research shows 15–30s clips are sufficient for all features computed here
   (Tzanetakis & Cook 2002; Bogdanov et al. 2013). This is explicitly noted
   in the methodology so reviewers are satisfied.
@@ -188,7 +188,7 @@ def run():
     # Only process songs that have a preview URL
     songs = [s for s in songs if s["id"] in {
         r["song_id"] for r in conn.execute(
-            "SELECT song_id FROM deezer_meta WHERE preview_url IS NOT NULL AND preview_url != ''"
+            "SELECT song_id FROM itunes_meta WHERE preview_url IS NOT NULL AND preview_url != ''"
         ).fetchall()
     }]
 
@@ -200,7 +200,7 @@ def run():
     preview_map = {
         r["song_id"]: r["preview_url"]
         for r in conn.execute(
-            "SELECT song_id, preview_url FROM deezer_meta WHERE preview_url IS NOT NULL"
+            "SELECT song_id, preview_url FROM itunes_meta WHERE preview_url IS NOT NULL"
         ).fetchall()
     }
 
@@ -215,7 +215,7 @@ def run():
             continue
 
         audio = download_preview(url, sid)
-        time.sleep(RATE["deezer"])
+        time.sleep(RATE["itunes"])
 
         if audio is None:
             set_status(conn, sid, "status_librosa", 0)

@@ -6,7 +6,7 @@ Every collector imports from here — no schema is defined elsewhere.
 
 Tables:
   songs             — chart data + identifiers (one row per song × year)
-  deezer_meta       — Deezer full metadata (duration, explicit, genre IDs, BPM)
+  itunes_meta       — Itunes full metadata (duration, explicit, ID)
   lastfm_meta       — Last.fm tags, listener count, playcount, top tags
   musicbrainz_meta  — Genre, ISRC, recording duration from MusicBrainz
   audio_librosa     — Librosa-extracted audio features
@@ -45,18 +45,18 @@ CREATE TABLE IF NOT EXISTS songs (
     weeks_on_chart   INTEGER,            -- total weeks on Hot 100
 
     -- External IDs (filled by collectors, NULL until matched)
-    deezer_id        INTEGER,
+    itunes_id        INTEGER,
     musicbrainz_id   TEXT,               -- MusicBrainz recording MBID (UUID)
     genius_id        INTEGER,
 
     -- Audio file status
-    preview_url      TEXT,               -- Deezer 30s MP3 URL
+    preview_url      TEXT,               -- Itunes 30s MP3 URL
     audio_path       TEXT,               -- local WAV path once downloaded
     audio_duration_s REAL,              -- actual duration of downloaded audio
 
     -- Collection status flags
     -- NULL = not tried | 0 = tried, failed | 1 = success
-    status_deezer    INTEGER DEFAULT NULL,
+    status_status    INTEGER DEFAULT NULL,
     status_lastfm    INTEGER DEFAULT NULL,
     status_mb        INTEGER DEFAULT NULL,
     status_lyrics    INTEGER DEFAULT NULL,
@@ -75,29 +75,29 @@ CREATE TABLE IF NOT EXISTS songs (
 SONGS_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_songs_year       ON songs(year);",
     "CREATE INDEX IF NOT EXISTS idx_songs_period     ON songs(period);",
-    "CREATE INDEX IF NOT EXISTS idx_songs_deezer     ON songs(status_deezer);",
+    "CREATE INDEX IF NOT EXISTS idx_songs_itunes     ON songs(status_itunes);",
     "CREATE INDEX IF NOT EXISTS idx_songs_librosa    ON songs(status_librosa);",
     "CREATE INDEX IF NOT EXISTS idx_songs_essentia   ON songs(status_essentia);",
     "CREATE INDEX IF NOT EXISTS idx_songs_lyrics     ON songs(status_lyrics);",
 ]
 
-DEEZER_META = """
-CREATE TABLE IF NOT EXISTS deezer_meta (
+ITUNES_META = """
+CREATE TABLE IF NOT EXISTS itunes_meta (
     song_id          INTEGER PRIMARY KEY REFERENCES songs(id),
-    deezer_track_id  INTEGER,
-    deezer_title     TEXT,           -- title as it appears on Deezer
-    deezer_artist    TEXT,
+    itunes_track_id  INTEGER,
+    itunes_title     TEXT,           -- title as it appears on Itunes
+    itunes_artist    TEXT,
     album_title      TEXT,
     album_id         INTEGER,
     release_date     TEXT,           -- YYYY-MM-DD or YYYY
     duration_s       INTEGER,        -- full track duration in seconds
     explicit         INTEGER,        -- 0 = clean, 1 = explicit, 2 = unknown
-    bpm              REAL,           -- Deezer's own BPM field (often 0 if unlisted)
-    rank             INTEGER,        -- Deezer's internal popularity rank
+    bpm              REAL,           -- Itunes's own BPM field (often 0 if unlisted)
+    rank             INTEGER,        -- Itunes's internal popularity rank
     preview_url      TEXT,           -- 30s MP3 preview
     cover_small      TEXT,           -- album art URL 56x56
     cover_medium     TEXT,           -- album art URL 250x250
-    deezer_genre_ids TEXT,           -- JSON array of genre IDs e.g. "[132, 116]"
+    itunes_genre_ids TEXT,           -- JSON array of genre IDs e.g. "[132, 116]"
     -- Genre names from /genre endpoint (fetched separately)
     genre_names      TEXT            -- JSON array e.g. '["Pop", "Dance"]'
 );
@@ -322,7 +322,7 @@ def get_conn() -> sqlite3.Connection:
 def init_db():
     """Create all tables and indexes. Safe to call multiple times (IF NOT EXISTS)."""
     conn = get_conn()
-    tables = [SONGS, DEEZER_META, LASTFM_META, MUSICBRAINZ_META,
+    tables = [SONGS, ITUNES_META, LASTFM_META, MUSICBRAINZ_META,
               AUDIO_LIBROSA, AUDIO_ESSENTIA, LYRICS_RAW, ECONOMIC_ANNUAL]
     for ddl in tables:
         conn.execute(ddl)
@@ -353,7 +353,7 @@ def upsert(conn: sqlite3.Connection, table: str,
 def get_songs_needing(status_col: str, conn=None) -> list:
     """
     Return all songs where status_col IS NULL (not yet attempted).
-    status_col should be one of: status_deezer, status_lastfm, status_mb,
+    status_col should be one of: status_itunes, status_lastfm, status_mb,
                                   status_lyrics, status_librosa, status_essentia
     """
     close = conn is None

@@ -25,6 +25,7 @@ No API key needed. Just set MB_USER_AGENT in config.py.
 """
 
 import sys, time, json, logging
+
 sys.path.insert(0, str(__file__).rsplit("/collectors/", 1)[0])
 
 import requests
@@ -39,7 +40,7 @@ log = logging.getLogger("musicbrainz")
 MB_BASE = "https://musicbrainz.org/ws/2"
 SESSION = requests.Session()
 SESSION.headers.update({
-    "User-Agent": MB_USER_AGENT,   # MusicBrainz requires a meaningful user agent
+    "User-Agent": MB_USER_AGENT,  # MusicBrainz requires a meaningful user agent
     "Accept": "application/json",
 })
 
@@ -60,7 +61,7 @@ def mb_get(endpoint: str, **params) -> dict | None:
         if r.status_code == 503:
             log.warning("MusicBrainz rate-limited — waiting 10s")
             time.sleep(10)
-            return mb_get(endpoint, **params)   # retry once
+            return mb_get(endpoint, **params)  # retry once
         r.raise_for_status()
         return r.json()
     except Exception as e:
@@ -121,56 +122,56 @@ def build_mb_row(song_id: int, recording: dict, detail: dict | None) -> dict:
 
     # ISRCs (a track can have multiple; take the first)
     isrcs = d.get("isrcs", [])
-    isrc  = isrcs[0] if isrcs else None
+    isrc = isrcs[0] if isrcs else None
 
     # Tags: MusicBrainz tags have name + count
     tags = d.get("tags", [])
     tags_sorted = sorted(tags, key=lambda t: t.get("count", 0), reverse=True)
-    tag_names   = [t["name"] for t in tags_sorted[:10]]
+    tag_names = [t["name"] for t in tags_sorted[:10]]
 
     # Release info (first release)
-    releases     = d.get("releases", [])
+    releases = d.get("releases", [])
     release_date = None
-    country      = None
+    country = None
     primary_type = None
-    label        = None
+    label = None
 
     if releases:
         rel = releases[0]
         release_date = rel.get("date")
-        country      = rel.get("country")
-        rg           = rel.get("release-group", {})
+        country = rel.get("country")
+        rg = rel.get("release-group", {})
         primary_type = rg.get("primary-type")
         # Label from label-info if available
-        label_infos  = rel.get("label-info", [])
+        label_infos = rel.get("label-info", [])
         if label_infos:
             label = label_infos[0].get("label", {}).get("name")
 
     return {
-        "song_id":      song_id,
-        "mbid":         d.get("id") or recording.get("id"),
-        "isrc":         isrc,
-        "duration_ms":  d.get("length"),
+        "song_id": song_id,
+        "mbid": d.get("id") or recording.get("id"),
+        "isrc": isrc,
+        "duration_ms": d.get("length"),
         "release_date": release_date,
-        "country":      country,
-        "mb_tags":      json.dumps(tag_names) if tag_names else None,
+        "country": country,
+        "mb_tags": json.dumps(tag_names) if tag_names else None,
         "primary_type": primary_type,
-        "label":        label,
+        "label": label,
     }
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def run():
-    conn  = get_conn()
+    conn = get_conn()
     songs = get_songs_needing("status_mb", conn)
     log.info("%d songs need MusicBrainz data", len(songs))
 
     matched = failed = 0
 
     for song in tqdm(songs, desc="MusicBrainz"):
-        sid    = song["id"]
-        title  = song["title"]
+        sid = song["id"]
+        title = song["title"]
         artist = song["artist"]
 
         # Search for the recording
@@ -202,9 +203,9 @@ def run():
     conn.close()
 
     # ── Summary ───────────────────────────────────────────────────────────────
-    print("\n" + "═"*52)
+    print("\n" + "═" * 52)
     print("  MUSICBRAINZ COLLECTION COMPLETE")
-    print("═"*52)
+    print("═" * 52)
     print(f"  Matched:    {matched}")
     print(f"  Failed:     {failed}")
     print(f"  Match rate: {100 * matched / max(matched + failed, 1):.1f}%")
@@ -216,7 +217,7 @@ def run():
     ).fetchone()[0]
     print(f"\n  Songs with genre tags: {with_tags}")
     conn2.close()
-    print("═"*52)
+    print("═" * 52)
 
 
 if __name__ == "__main__":

@@ -26,9 +26,14 @@ share/python-wheels/
 *.egg
 MANIFEST
 .idea/
+data/*.db-*
 
 # Test
 test/
+
+# Data
+audio/
+models/
 
 # PyInstaller
 #   Usually these files are written by a python script from a template

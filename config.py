@@ -5,6 +5,8 @@ Edit your API keys here. Nothing else needs changing across the project.
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
 
 # ── Project Paths ─────────────────────────────────────────────────────────────
 ROOT = Path(__file__).parent
@@ -12,6 +14,7 @@ DATA_DIR = ROOT / "data"
 AUDIO_DIR = ROOT / "audio"
 OUTPUT_DIR = ROOT / "outputs"
 LOG_DIR = ROOT / "logs"
+MODELS_DIR = ROOT / "models"
 
 for d in [DATA_DIR, AUDIO_DIR, OUTPUT_DIR, LOG_DIR]:
     d.mkdir(exist_ok=True)
@@ -25,12 +28,12 @@ DB_PATH = DATA_DIR / "music_covid.db"
 # Itunes  → NO KEY NEEDED (public API)
 # MusicBrainz → NO KEY NEEDED (just set a user-agent string)
 
-GENIUS_TOKEN = os.getenv("GENIUS_TOKEN", "YOUR_GENIUS_TOKEN_HERE")
-FRED_API_KEY = os.getenv("FRED_API_KEY", "YOUR_FRED_KEY_HERE")
-LASTFM_API_KEY = os.getenv("LASTFM_API_KEY", "YOUR_LASTFM_KEY_HERE")
+GENIUS_TOKEN = os.getenv("GENIUS_TOKEN")
+FRED_API_KEY = os.getenv("FRED_API_KEY")
+LASTFM_API_KEY = os.getenv("LASTFM_API_KEY")
 
 # MusicBrainz requires a descriptive User-Agent (replace with your project name)
-MB_USER_AGENT = "MusicCovidResearch/1.0 (saga13.notify@gmail.com)"
+MB_USER_AGENT = "MusicCovidResearch/1.0 (s*****.notify@gmail.com)"
 
 # ── Time Period Definitions ───────────────────────────────────────────────────
 #
@@ -61,7 +64,7 @@ def year_to_period(year: int) -> str:
 
 # ── Rate Limits (seconds between requests) ───────────────────────────────────
 RATE = {
-    "itunes": 0.12,  # ~8 req/sec
+    "itunes": 0.2,  # ~50 req/sec
     "genius": 0.5,  # 2 req/sec
     "lastfm": 0.22,  # ~4.5 req/sec (limit is 5/sec)
     "musicbrainz": 1.1,  # 1 req/sec (MusicBrainz strict)

@@ -22,6 +22,7 @@ Installs: pip install lyricsgenius
 
 import sys, re, time, logging
 from datetime import datetime
+
 sys.path.insert(0, str(__file__).rsplit("/collectors/", 1)[0])
 
 from tqdm import tqdm
@@ -32,10 +33,10 @@ logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s  %(levelname)-8s  %(message)s")
 log = logging.getLogger("lyrics")
 
-
 # ── Genius client (lazy init) ─────────────────────────────────────────────────
 
 _genius = None
+
 
 def get_genius():
     global _genius
@@ -44,7 +45,7 @@ def get_genius():
         _genius = lyricsgenius.Genius(
             GENIUS_TOKEN,
             verbose=False,
-            remove_section_headers=False,   # keep raw; we clean separately
+            remove_section_headers=False,  # keep raw; we clean separately
             skip_non_songs=True,
             retries=2,
             timeout=15,
@@ -90,16 +91,16 @@ def clean_lyrics(raw: str) -> str:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def run():
-    conn  = get_conn()
+    conn = get_conn()
     songs = get_songs_needing("status_lyrics", conn)
     log.info("%d songs need lyrics", len(songs))
 
-    genius  = get_genius()
+    genius = get_genius()
     fetched = failed = 0
 
     for song in tqdm(songs, desc="Lyrics"):
-        sid    = song["id"]
-        title  = song["title"]
+        sid = song["id"]
+        title = song["title"]
         artist = song["artist"]
 
         # ── Fetch ─────────────────────────────────────────────────────────────
@@ -115,13 +116,13 @@ def run():
 
         # ── Store ─────────────────────────────────────────────────────────────
         if raw_text:
-            clean  = clean_lyrics(raw_text)
-            words  = clean.split()
+            clean = clean_lyrics(raw_text)
+            words = clean.split()
             row = {
-                "song_id":    sid,
-                "raw_text":   raw_text,
+                "song_id": sid,
+                "raw_text": raw_text,
                 "clean_text": clean,
-                "source":     "genius",
+                "source": "genius",
                 "word_count": len(words),
                 "char_count": len(clean),
                 "fetched_at": datetime.utcnow().isoformat(),
@@ -131,10 +132,10 @@ def run():
             fetched += 1
         else:
             row = {
-                "song_id":    sid,
-                "raw_text":   None,
+                "song_id": sid,
+                "raw_text": None,
                 "clean_text": None,
-                "source":     "failed",
+                "source": "failed",
                 "word_count": 0,
                 "char_count": 0,
                 "fetched_at": datetime.utcnow().isoformat(),
@@ -148,9 +149,9 @@ def run():
     conn.close()
 
     # ── Summary ───────────────────────────────────────────────────────────────
-    print("\n" + "═"*52)
+    print("\n" + "═" * 52)
     print("  LYRICS COLLECTION COMPLETE")
-    print("═"*52)
+    print("═" * 52)
     print(f"  Fetched: {fetched}  |  Failed/not found: {failed}")
     rate = 100 * fetched / max(fetched + failed, 1)
     print(f"  Success rate: {rate:.1f}%")
@@ -185,7 +186,7 @@ def run():
         print(f"    {r['year']} [{r['period'][:12]:12}]  "
               f"{r['ok']:3}/{r['total']} ({pct:.0f}%)  {bar}")
     conn2.close()
-    print("═"*52)
+    print("═" * 52)
 
 
 if __name__ == "__main__":

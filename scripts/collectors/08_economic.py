@@ -24,13 +24,13 @@ Run:
 Installs: pip install fredapi
 """
 
-import sys, json, logging
+import sys, logging
+
 sys.path.insert(0, str(__file__).rsplit("/collectors/", 1)[0])
 
 import pandas as pd
-import numpy as np
 from db import get_conn
-from config import FRED_API_KEY, ALL_YEARS, year_to_period, WHR_CSV
+from config import FRED_API_KEY, ALL_YEARS, year_to_period
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s  %(levelname)-8s  %(message)s")
@@ -38,8 +38,8 @@ log = logging.getLogger("economic")
 
 # ── WHR_CSV path ──────────────────────────────────────────────────────────────
 from pathlib import Path
-WHR_CSV = Path(__file__).parent.parent / "data" / "world_happiness_report.csv"
 
+WHR_CSV = Path(__file__).parent.parent.parent / "data" / "world_happiness_report.csv"
 
 # ── FRED Data ─────────────────────────────────────────────────────────────────
 
@@ -47,15 +47,15 @@ WHR_CSV = Path(__file__).parent.parent / "data" / "world_happiness_report.csv"
 # Source: FRED, Federal Reserve Bank of St. Louis (public domain)
 FALLBACK_FRED = {
     # year: (cpi_annual_mean, inflation_rate_pct, unemployment_pct, consumer_sentiment)
-    2016: (240.0,  1.3, 4.9, 91.9),
-    2017: (245.1,  2.1, 4.4, 95.9),
-    2018: (251.1,  2.4, 3.9, 98.4),
-    2019: (255.7,  1.8, 3.7, 96.0),
-    2020: (258.8,  1.2, 8.1, 76.9),
-    2021: (270.9,  4.7, 5.4, 76.8),
-    2022: (292.7,  8.0, 3.6, 58.5),
-    2023: (304.7,  4.1, 3.6, 65.1),
-    2024: (313.5,  2.9, 4.0, 69.0),
+    2016: (240.0, 1.3, 4.9, 91.9),
+    2017: (245.1, 2.1, 4.4, 95.9),
+    2018: (251.1, 2.4, 3.9, 98.4),
+    2019: (255.7, 1.8, 3.7, 96.0),
+    2020: (258.8, 1.2, 8.1, 76.9),
+    2021: (270.9, 4.7, 5.4, 76.8),
+    2022: (292.7, 8.0, 3.6, 58.5),
+    2023: (304.7, 4.1, 3.6, 65.1),
+    2024: (313.5, 2.9, 4.0, 69.0),
 }
 
 # US GDP growth (%) — World Bank / BEA
@@ -83,25 +83,25 @@ def fetch_fred_data() -> dict:
     Fetch from FRED API. Returns dict: year → (cpi, inflation, unemployment, sentiment).
     Falls back to hardcoded values if API key not set or request fails.
     """
-    if FRED_API_KEY == "YOUR_FRED_KEY_HERE":
-        log.info("FRED API key not set — using hardcoded fallback values")
-        return FALLBACK_FRED
+    # if FRED_API_KEY:
+    #     log.info("FRED API key not set — using hardcoded fallback values")
+    #     return FALLBACK_FRED
 
     try:
         from fredapi import Fred
         fred = Fred(api_key=FRED_API_KEY)
 
         # Fetch monthly series
-        cpi     = fred.get_series("CPIAUCSL",         "2016-01-01", "2024-12-31")
-        unemp   = fred.get_series("UNRATE",            "2016-01-01", "2024-12-31")
-        sent    = fred.get_series("UMCSENT",           "2016-01-01", "2024-12-31")
+        cpi = fred.get_series("CPIAUCSL", "2016-01-01", "2024-12-31")
+        unemp = fred.get_series("UNRATE", "2016-01-01", "2024-12-31")
+        sent = fred.get_series("UMCSENT", "2016-01-01", "2024-12-31")
 
         # Annualise
         result = {}
         for year in ALL_YEARS + [2016]:
-            year_cpi   = cpi[str(year)].mean()   if str(year) in cpi.index.year.astype(str).values   else None
+            year_cpi = cpi[str(year)].mean() if str(year) in cpi.index.year.astype(str).values else None
             year_unemp = unemp[str(year)].mean() if str(year) in unemp.index.year.astype(str).values else None
-            year_sent  = sent[str(year)].mean()  if str(year) in sent.index.year.astype(str).values  else None
+            year_sent = sent[str(year)].mean() if str(year) in sent.index.year.astype(str).values else None
 
             # Inflation = YoY % change in CPI
             cpi_prev = cpi[str(year - 1)].mean() if str(year - 1) in cpi.index.year.astype(str).values else None
@@ -133,10 +133,10 @@ def load_happiness_data() -> tuple[dict, dict]:
         df = pd.read_csv(WHR_CSV)
 
         # Detect column names (they vary slightly across WHR editions)
-        year_col    = next(c for c in df.columns if "year" in c.lower())
+        year_col = next(c for c in df.columns if "year" in c.lower())
         country_col = next(c for c in df.columns if "country" in c.lower() or "name" in c.lower())
-        score_col   = next(c for c in df.columns
-                           if any(k in c.lower() for k in ["ladder", "happiness score", "life ladder"]))
+        score_col = next(c for c in df.columns
+                         if any(k in c.lower() for k in ["ladder", "happiness score", "life ladder"]))
 
         # US scores
         us = df[df[country_col].str.contains("United States", na=False)]
@@ -160,8 +160,8 @@ def load_happiness_data() -> tuple[dict, dict]:
 def run():
     conn = get_conn()
 
-    fred_data           = fetch_fred_data()
-    whr_us, whr_global  = load_happiness_data()
+    fred_data = fetch_fred_data()
+    whr_us, whr_global = load_happiness_data()
 
     inserted = 0
     for year in ALL_YEARS:
@@ -169,15 +169,15 @@ def run():
         cpi, inflation, unemployment, sentiment = fred_vals
 
         row = {
-            "year":                 year,
-            "period":               year_to_period(year),
-            "cpi_us":               cpi,
-            "inflation_rate_us":    inflation,
-            "unemployment_us":      unemployment,
-            "consumer_sentiment":   sentiment,
-            "happiness_us":         whr_us.get(year),
+            "year": year,
+            "period": year_to_period(year),
+            "cpi_us": cpi,
+            "inflation_rate_us": inflation,
+            "unemployment_us": unemployment,
+            "consumer_sentiment": sentiment,
+            "happiness_us": whr_us.get(year),
             "happiness_global_avg": whr_global.get(year),
-            "gdp_growth_us":        FALLBACK_GDP.get(year),
+            "gdp_growth_us": FALLBACK_GDP.get(year),
         }
 
         conn.execute("""
@@ -201,12 +201,12 @@ def run():
     conn.close()
 
     # ── Print table ───────────────────────────────────────────────────────────
-    print("\n" + "═"*80)
+    print("\n" + "═" * 80)
     print("  ECONOMIC DATA STORED")
-    print("═"*80)
+    print("═" * 80)
     print(f"  {'Year':>4}  {'Period':15}  {'CPI':>7}  {'Inflation':>9}  "
           f"{'Unemploy':>8}  {'Sentiment':>9}  {'Happiness':>9}")
-    print("  " + "─"*76)
+    print("  " + "─" * 76)
 
     conn2 = get_conn()
     for r in conn2.execute("SELECT * FROM economic_annual ORDER BY year"):
@@ -217,7 +217,7 @@ def run():
               f"{r['consumer_sentiment'] or 0:>9.1f}  "
               f"{r['happiness_us'] or 0:>9.2f}")
     conn2.close()
-    print("═"*80)
+    print("═" * 80)
 
 
 if __name__ == "__main__":

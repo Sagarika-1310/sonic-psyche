@@ -4,5 +4,13 @@ pandas~=2.0.3
 beautifulsoup4~=4.14.3
 lyricsgenius~=3.7.5
 tqdm~=4.67.3
-numpy~=2.4.3
+numpy~=1.26.4
 billboard.py
+librosa~=0.11.0
+soundfile~=0.13.1
+dotenv~=0.9.9
+python-dotenv~=1.2.2
+pydub~=0.25.1
+db~=0.1.1
+pyloudnorm~=0.2.0
+essentia~=2.1b6.dev1177

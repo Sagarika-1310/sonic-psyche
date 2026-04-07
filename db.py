@@ -223,7 +223,7 @@ CREATE TABLE IF NOT EXISTS audio_essentia (
     rhythm_strength            REAL,   -- overall beat strength
     rhythm_regularity          REAL,   -- how steady the tempo is
 
-    -- ── Loudness (EBU R128 standard) ────────────────────────────────────────
+    -- ── Loudness ────────────────────────────────────────
     loudness_integrated        REAL,   -- integrated loudness (LUFS) — broadcast standard
     loudness_range             REAL,   -- LRA: dynamic range
     loudness_momentary_max     REAL,   -- loudest moment
@@ -233,6 +233,7 @@ CREATE TABLE IF NOT EXISTS audio_essentia (
     key_essentia               TEXT,   -- e.g. "C", "F#", "Bb"
     scale_essentia             TEXT,   -- "major" | "minor"
     key_strength               REAL,   -- confidence 0–1
+    tonal_atonal               REAL,
 
     -- ── Tonal Complexity ─────────────────────────────────────────────────────
     dissonance                 REAL,   -- tonal roughness / harshness (0–1)
@@ -247,25 +248,59 @@ CREATE TABLE IF NOT EXISTS audio_essentia (
     mfcc_mean_10 REAL, mfcc_mean_11 REAL, mfcc_mean_12 REAL, mfcc_mean_13 REAL,
     -- GFCC (Gammatone) — perceptually motivated, better for music mood
     gfcc_mean_1  REAL, gfcc_mean_2  REAL, gfcc_mean_3  REAL,
-    gfcc_mean_4  REAL, gfcc_mean_5  REAL,
+    gfcc_mean_4  REAL, gfcc_mean_5  REAL, 
+    timbre_bright  REAL, -- (bright / high-end presence) 
+    timbre_dark  REAL, -- (dark / warm / bass-heavy)
 
     -- ── Mood Classifiers (Essentia trained ML models) ────────────────────────
-    -- These are output probabilities from trained SVM classifiers
+    -- These are output probabilities from trained classifiers
     -- trained on AllMusic editorial annotations
     mood_happy       REAL,   -- probability that song is "happy"
     mood_sad         REAL,   -- probability that song is "sad"
     mood_relaxed     REAL,   -- probability that song is "relaxed/chill"
     mood_aggressive  REAL,   -- probability that song is "aggressive/energetic"
+    mood_party       REAL,   -- probability that song is "party/non-party"
+    mood_acoustic    REAL,   -- probability of acoustic production style,
     mood_electronic  REAL,   -- probability of electronic production style
-    mood_acoustic    REAL,   -- probability of acoustic character
+    approachability  REAL,   -- probability that song is "welcoming/easy-listening"
+    engagement       REAL,   -- probability that song is "captivating/attention-holding"
+    
+    -- ── Arousal / Valence regression ─────────────────────────────────────────
+    arousal_deam  REAL, valence_deam  REAL, arousal_emomusic  REAL, valence_emomusic  REAL,
+    arousal_muse  REAL, valence_muse  REAL,
+    
+    -- ── MIREX 5-cluster mood taxonomy ────────────────────────────────────────
+    -- Cluster 1: Passionate / Rousing / Confident / Boisterous / Rowdy
+    mirex_cluster1   REAL,
+    -- Cluster 2: Rollicking / Cheerful / Fun / Sweet / Amiable
+    mirex_cluster2   REAL,
+    -- Cluster 3: Literate / Poignant / Wistful / Bittersweet / Brooding
+    mirex_cluster3   REAL,
+    -- Cluster 4: Humorous / Silly / Quirky / Whimsical / Wry
+    mirex_cluster4   REAL,
+    -- Cluster 5: Aggressive / Fiery / Tense / Intense / Visceral
+    mirex_cluster5   REAL,
 
     -- ── Voice / Instrument ───────────────────────────────────────────────────
-    voice_instrumental_prob  REAL,  -- probability song is instrumental (0=vocal, 1=instrumental)
+    voice_instrumental  REAL,  -- probability song is instrumental (0=vocal, 1=instrumental)
     -- Higher values = more likely instrumental
+    voice_gender_female REAL,
+    voice_gender_male   REAL,
 
-    -- ── Engagement ───────────────────────────────────────────────────────────
-    -- Approximated from spectral, rhythm, and loudness features
-    energy_essentia  REAL    -- overall perceived energy (Essentia formulation)
+    -- ── Algorithmic Features ──────────────────────────────────────────────────
+    intensity           INTEGER,  -- -1 relaxed / 0 moderate / 1 aggressive
+    pitch_salience_mean REAL,     -- melodic content presence
+    tuning_frequency    REAL,     -- estimated concert pitch in Hz
+    silence_ratio       REAL,     -- 0–1 fraction of leading+trailing silence
+    spectral_rolloff    REAL,     -- Hz below which 85% energy lies
+    spectral_flatness   REAL,     -- 0 tonal → 1 noise-like
+
+    -- ── Chord features ───────────────────────────────────────────────────────
+    chords_key           TEXT,    -- e.g. 'C', 'F#'
+    chords_scale         TEXT,    -- 'major' | 'minor'
+    chords_strength_mean REAL,    -- mean chord confidence
+    chords_changes_rate  REAL    -- chord changes per second
+
 );
 """
 

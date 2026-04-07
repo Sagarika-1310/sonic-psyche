@@ -21,6 +21,7 @@ Get free key at: https://www.last.fm/api/account/create
 """
 
 import sys, time, json, logging
+
 sys.path.insert(0, str(__file__).rsplit("/collectors/", 1)[0])
 
 import requests
@@ -32,17 +33,18 @@ logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s  %(levelname)-8s  %(message)s")
 log = logging.getLogger("lastfm")
 
-BASE = "https://ws.audioscrobbler.com/2.0/"
+BASE = "http://ws.audioscrobbler.com/2.0/"
 SESSION = requests.Session()
+
 
 # ── API helpers ───────────────────────────────────────────────────────────────
 
 def lastfm_get(method: str, **params) -> dict | None:
     """Generic Last.fm API call. Returns parsed JSON or None on failure."""
     all_params = {
-        "method":  method,
+        "method": method,
         "api_key": LASTFM_API_KEY,
-        "format":  "json",
+        "format": "json",
         **params,
     }
     try:
@@ -61,7 +63,7 @@ def lastfm_get(method: str, **params) -> dict | None:
 def get_track_info(title: str, artist: str) -> dict | None:
     """Fetch track.getInfo — returns tags, listeners, playcount, url."""
     data = lastfm_get("track.getInfo", track=title, artist=artist,
-                       autocorrect=1)
+                      autocorrect=1)
     return data.get("track") if data else None
 
 
@@ -82,21 +84,21 @@ def parse_track_info(song_id: int, track: dict) -> dict:
     # Tags: list of {name, url, count} dicts or a single dict
     raw_tags = track.get("toptags", {}).get("tag", [])
     if isinstance(raw_tags, dict):
-        raw_tags = [raw_tags]   # API sometimes returns dict instead of list
+        raw_tags = [raw_tags]  # API sometimes returns dict instead of list
 
     # Sort by count descending, take top 5
     tags_sorted = sorted(raw_tags,
                          key=lambda t: int(t.get("count", 0) or 0),
                          reverse=True)[:5]
-    tag_names   = [t["name"].lower() for t in tags_sorted]
+    tag_names = [t["name"].lower() for t in tags_sorted]
     tag_weights = {t["name"].lower(): int(t.get("count", 0) or 0)
                    for t in tags_sorted}
 
     row = {
-        "song_id":     song_id,
-        "listeners":   int(track.get("listeners", 0) or 0),
-        "playcount":   int(track.get("playcount", 0) or 0),
-        "lastfm_url":  track.get("url"),
+        "song_id": song_id,
+        "listeners": int(track.get("listeners", 0) or 0),
+        "playcount": int(track.get("playcount", 0) or 0),
+        "lastfm_url": track.get("url"),
         "tag_weights": json.dumps(tag_weights) if tag_weights else None,
     }
 
@@ -110,15 +112,15 @@ def parse_track_info(song_id: int, track: dict) -> dict:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def run():
-    conn   = get_conn()
-    songs  = get_songs_needing("status_lastfm", conn)
+    conn = get_conn()
+    songs = get_songs_needing("status_lastfm", conn)
     log.info("%d songs need Last.fm data", len(songs))
 
     matched = failed = 0
 
     for song in tqdm(songs, desc="Last.fm"):
-        sid    = song["id"]
-        title  = song["title"]
+        sid = song["id"]
+        title = song["title"]
         artist = song["artist"]
 
         # ── Track info ────────────────────────────────────────────────────────
@@ -149,9 +151,9 @@ def run():
     conn.close()
 
     # ── Summary ───────────────────────────────────────────────────────────────
-    print("\n" + "═"*52)
+    print("\n" + "═" * 52)
     print("  LAST.FM COLLECTION COMPLETE")
-    print("═"*52)
+    print("═" * 52)
     print(f"  Matched: {matched}  |  Failed: {failed}")
     rate = 100 * matched / max(matched + failed, 1)
     print(f"  Match rate: {rate:.1f}%")
@@ -169,7 +171,7 @@ def run():
             tags_str = " | ".join(f"{r[0]} ({r[1]})" for r in rows)
             print(f"  {col}: {tags_str}")
     conn2.close()
-    print("═"*52)
+    print("═" * 52)
 
 
 if __name__ == "__main__":

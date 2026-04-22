@@ -12,6 +12,8 @@ Tables:
   audio_librosa     — Librosa-extracted audio features
   audio_essentia    — Essentia-extracted audio features (incl. danceability)
   lyrics_raw        — Raw lyrics text (no analysis here)
+  lyrics_sentiment  - Sentiment analysis of song lyrics
+  lyrics_features   - Feature extraction of song lyrics
   economic_annual   — CPI, inflation, unemployment, happiness by year
 
 Design principles:
@@ -22,7 +24,6 @@ Design principles:
 
 import sqlite3
 import logging
-from pathlib import Path
 from config import DB_PATH
 
 log = logging.getLogger(__name__)
@@ -58,8 +59,11 @@ CREATE TABLE IF NOT EXISTS songs (
     status_lastfm    INTEGER DEFAULT NULL,
     status_mb        INTEGER DEFAULT NULL,
     status_lyrics    INTEGER DEFAULT NULL,
+    status_itunes    INTEGER DEFAULT NULL,
     status_librosa   INTEGER DEFAULT NULL,
     status_essentia  INTEGER DEFAULT NULL,
+    status_sentiment INTEGER DEFAULT NULL,
+    status_features  INTEGER DEFAULT NULL,
 
     -- Deduplication: same song can appear in multiple years
     -- We track the FIRST year it charted
@@ -77,6 +81,8 @@ SONGS_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_songs_librosa    ON songs(status_librosa);",
     "CREATE INDEX IF NOT EXISTS idx_songs_essentia   ON songs(status_essentia);",
     "CREATE INDEX IF NOT EXISTS idx_songs_lyrics     ON songs(status_lyrics);",
+    "CREATE INDEX IF NOT EXISTS idx_songs_sentiment ON songs(status_sentiment);",
+    "CREATE INDEX IF NOT EXISTS idx_songs_features  ON songs(status_features);",
 ]
 
 ITUNES_META = """
@@ -338,6 +344,126 @@ CREATE TABLE IF NOT EXISTS economic_annual (
 );
 """
 
+LYRICS_SENTIMENT = """
+CREATE TABLE IF NOT EXISTS lyrics_sentiment (
+    song_id              INTEGER PRIMARY KEY REFERENCES songs(id),
+
+    -- ── VADER (line-averaged) ────────────────────────────────────────────────
+    -- Each line is scored independently; dimensions are then averaged.
+    -- line_std captures polarity variance across verses.
+    vader_compound       REAL,   -- mean compound score  [-1, 1]
+    vader_pos            REAL,   -- mean positive ratio   [0, 1]
+    vader_neu            REAL,   -- mean neutral ratio    [0, 1]
+    vader_neg            REAL,   -- mean negative ratio   [0, 1]
+    vader_line_std       REAL,   -- std dev of per-line compound scores
+
+    -- ── NRCLex (proportions of emotion-tagged tokens) ────────────────────────
+    nrc_joy              REAL,
+    nrc_trust            REAL,
+    nrc_anticipation     REAL,
+    nrc_surprise         REAL,
+    nrc_fear             REAL,
+    nrc_sadness          REAL,
+    nrc_disgust          REAL,
+    nrc_anger            REAL,
+    nrc_positive         REAL,   -- NRC meta-label (positive sentiment words)
+    nrc_negative         REAL,   -- NRC meta-label (negative sentiment words)
+    nrc_dominant_emotion TEXT,   -- argmax of the 8 core emotions
+
+    -- ── DistilRoBERTa 7-class emotion ────────────────────────────────────────
+    -- Model: j-hartmann/emotion-english-distilroberta-base
+    -- Lyrics chunked to fit 512-token limit; probabilities averaged.
+    emotion_label        TEXT,   -- argmax label
+    emotion_joy          REAL,
+    emotion_sadness      REAL,
+    emotion_anger        REAL,
+    emotion_fear         REAL,
+    emotion_disgust      REAL,
+    emotion_surprise     REAL,
+    emotion_neutral      REAL,
+
+    -- ── Derived fields ───────────────────────────────────────────────────────
+    proxy_posemo         REAL,   -- nrc_joy + nrc_trust
+    proxy_negemo         REAL,   -- nrc_sadness + nrc_fear + nrc_anger + nrc_disgust
+    anxiety_score        REAL,   -- 0.6×nrc_fear + 0.4×min(vader_line_std×vader_neg, 1)
+    sentiment_label      TEXT,   -- 'positive' | 'neutral' | 'negative'
+                                 -- compound ≥ 0.05 → positive
+                                 -- compound ≤ -0.05 → negative
+
+    analyzed_at          TEXT    -- ISO-8601 UTC timestamp
+);
+"""
+
+LYRICS_FEATURES = """
+CREATE TABLE IF NOT EXISTS lyrics_features (
+    song_id                 INTEGER PRIMARY KEY REFERENCES songs(id),
+
+    -- ── Lexical richness ─────────────────────────────────────────────────────
+    word_count              INTEGER,    -- total alphabetic tokens after tokenisation
+    unique_word_count       INTEGER,    -- distinct lowercase tokens
+    type_token_ratio        REAL,       -- unique / total  (0–1; higher = richer vocabulary)
+    mtld                    REAL,       -- Measure of Textual Lexical Diversity
+                                        -- (length-independent; NULL if < 50 tokens)
+
+    -- ── Structure ────────────────────────────────────────────────────────────
+    line_count              INTEGER,
+    avg_words_per_line      REAL,
+    avg_line_length         REAL,       -- average character count per line
+    repetition_ratio        REAL,       -- fraction of lines that are exact duplicates
+                                        -- (high = chorus-heavy / hook-driven)
+    rhyme_density           REAL,       -- fraction of consecutive line pairs that rhyme
+                                        -- via CMU Pronouncing Dict; NULL if unavailable
+
+    -- ── Readability (textstat) ───────────────────────────────────────────────
+    flesch_reading_ease     REAL,       -- 0–100; higher = easier to read
+    flesch_kincaid_grade    REAL,       -- US school grade level
+    syllable_count          INTEGER,
+    avg_syllables_per_word  REAL,
+
+    -- ── POS ratios (spaCy en_core_web_sm) ────────────────────────────────────
+    -- Computed over all non-space tokens; PROPN merged into noun_ratio.
+    noun_ratio              REAL,
+    verb_ratio              REAL,
+    adj_ratio               REAL,
+    adv_ratio               REAL,
+
+    -- ── LIWC-proxy lexicons (proportion of lemmatised tokens) ────────────────
+    proxy_anx               REAL,   -- anxiety / fear language
+    proxy_sad               REAL,   -- sadness / despair language
+    proxy_anger             REAL,   -- anger / hostility language
+    proxy_social            REAL,   -- social connection / belonging language
+    proxy_death             REAL,   -- death / mortality language
+    proxy_future            REAL,   -- future orientation / aspiration
+    proxy_body              REAL,   -- body / physical sensation language
+    proxy_cogmech           REAL,   -- cognitive mechanism language (thinking, reasoning)
+
+    -- ── COVID / distress composites (custom lexicons) ────────────────────────
+    isolation_score         REAL,   -- loneliness, separation, confinement
+    hope_score              REAL,   -- optimism, recovery, light-at-end-of-tunnel
+    grief_score             REAL,   -- loss, mourning, heartbreak
+    agency_score            REAL,   -- control, self-determination, empowerment
+    social_hunger_score     REAL,   -- longing for closeness, touch, togetherness
+
+    -- ── LDA topic model (gensim, N_TOPICS = 6) ───────────────────────────────
+    -- Fitted once on the full corpus; topic labels must be interpreted manually.
+    lda_dominant_topic      INTEGER,    -- index of the highest-probability topic (0–5)
+    lda_topic_0_prob        REAL,
+    lda_topic_1_prob        REAL,
+    lda_topic_2_prob        REAL,
+    lda_topic_3_prob        REAL,
+    lda_topic_4_prob        REAL,
+    lda_topic_5_prob        REAL,
+
+    -- ── SBERT semantic embedding ──────────────────────────────────────────────
+    -- Model: all-MiniLM-L6-v2 (384 dimensions)
+    -- Stored as a JSON array for easy export to numpy / pandas.
+    -- Use for semantic similarity, clustering, and dimensionality reduction.
+    sbert_embedding         TEXT,
+
+    analyzed_at             TEXT    -- ISO-8601 UTC timestamp
+);
+"""
+
 
 # ═════════════════════════════════════════════════════════════════════════════
 # DATABASE HELPERS
@@ -356,7 +482,8 @@ def init_db():
     """Create all tables and indexes. Safe to call multiple times (IF NOT EXISTS)."""
     conn = get_conn()
     tables = [SONGS, ITUNES_META, LASTFM_META, MUSICBRAINZ_META,
-              AUDIO_LIBROSA, AUDIO_ESSENTIA, LYRICS_RAW, ECONOMIC_ANNUAL]
+              AUDIO_LIBROSA, AUDIO_ESSENTIA, LYRICS_RAW, LYRICS_SENTIMENT,
+              LYRICS_FEATURES, ECONOMIC_ANNUAL]
     for ddl in tables:
         conn.execute(ddl)
     for idx in SONGS_INDEXES:
@@ -387,7 +514,8 @@ def get_songs_needing(status_col: str, conn=None) -> list:
     """
     Return all songs where status_col IS NULL (not yet attempted).
     status_col should be one of: status_itunes, status_lastfm, status_mb,
-                                  status_lyrics, status_librosa, status_essentia
+                                  status_lyrics, status_librosa, status_essentia,
+                                  status_sentiment, status_features
     """
     close = conn is None
     if conn is None:

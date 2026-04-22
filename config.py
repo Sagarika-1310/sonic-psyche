@@ -36,22 +36,22 @@ MB_USER_AGENT = "MusicCovidResearch/1.0 (s*****.notify@gmail.com)"
 # ── Time Period Definitions ───────────────────────────────────────────────────
 #
 #   PRE-COVID   2017–2019  stable streaming baseline, post-social-media era
-#   DURING      2020–2021  acute pandemic; lockdowns, social isolation
-#   POST-COVID  2022–2024  reopening, inflation surge, recovery dynamics
+#   DURING      2020–2022  acute pandemic; lockdowns, social isolation
+#   POST-COVID  2023–2025  reopening, inflation surge, recovery dynamics
 #
 #   Three years pre and post gives balance.
 #   Two years "during" = the two most distinctive pandemic years.
 
 PERIODS = {
     "pre_covid": {"years": [2017, 2018, 2019], "label": "Pre-COVID (2017–2019)", "color": "#2196F3"},
-    "during_covid": {"years": [2020, 2021], "label": "During-COVID (2020–2021)", "color": "#F44336"},
-    "post_covid": {"years": [2022, 2023, 2024], "label": "Post-COVID (2022–2024)", "color": "#4CAF50"},
+    "during_covid": {"years": [2020, 2021, 2022], "label": "During-COVID (2020–2022)", "color": "#F44336"},
+    "post_covid": {"years": [2023, 2024, 2025], "label": "Post-COVID (2023–2025)", "color": "#4CAF50"},
 }
 
 ALL_YEARS = sorted([y for p in PERIODS.values() for y in p["years"]])
 
 
-# = [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024]
+# = [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025]
 
 def year_to_period(year: int) -> str:
     for name, cfg in PERIODS.items():

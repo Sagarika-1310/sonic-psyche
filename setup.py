@@ -14,7 +14,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from db import get_conn, init_db, DB_PATH
-import sqlite3
 
 
 def verify_tables():
@@ -113,8 +112,3 @@ if __name__ == "__main__":
     print("Creating database and all tables...")
     init_db()
     verify_tables()
-    # print("Renaming deezer columns to itunes columns in songs table...")
-    # rename_columns()
-    # print("Deleting tables...")
-    # delete_tables(["deezer_meta"])
-    # rename_sqlite_index()

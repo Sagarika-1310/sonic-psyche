@@ -47,7 +47,6 @@ CREATE TABLE IF NOT EXISTS songs (
     -- External IDs (filled by collectors, NULL until matched)
     itunes_id        INTEGER,
     musicbrainz_id   TEXT,               -- MusicBrainz recording MBID (UUID)
-    genius_id        INTEGER,
 
     -- Audio file status
     preview_url      TEXT,               -- Itunes 30s MP3 URL
@@ -56,7 +55,6 @@ CREATE TABLE IF NOT EXISTS songs (
 
     -- Collection status flags
     -- NULL = not tried | 0 = tried, failed | 1 = success
-    status_status    INTEGER DEFAULT NULL,
     status_lastfm    INTEGER DEFAULT NULL,
     status_mb        INTEGER DEFAULT NULL,
     status_lyrics    INTEGER DEFAULT NULL,
@@ -307,9 +305,9 @@ CREATE TABLE IF NOT EXISTS audio_essentia (
 LYRICS_RAW = """
 CREATE TABLE IF NOT EXISTS lyrics_raw (
     song_id     INTEGER PRIMARY KEY REFERENCES songs(id),
-    raw_text    TEXT,       -- full raw text from Genius (with section headers)
+    raw_text    TEXT,       -- full raw text from LRCLIB (with section headers)
     clean_text  TEXT,       -- preprocessed: headers removed, whitespace normalized
-    source      TEXT,       -- 'genius' | 'failed'
+    source      TEXT,       -- 'lrclib' | 'failed'
     word_count  INTEGER,    -- quick count for sanity check
     char_count  INTEGER,
     fetched_at  TEXT        -- ISO timestamp

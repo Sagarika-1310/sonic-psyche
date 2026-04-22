@@ -22,13 +22,11 @@ for d in [DATA_DIR, AUDIO_DIR, OUTPUT_DIR, LOG_DIR]:
 DB_PATH = DATA_DIR / "music_covid.db"
 
 # ── API Keys ──────────────────────────────────────────────────────────────────
-# Genius  → free at https://genius.com/api-clients  (Client Access Token)
 # FRED    → free at https://fred.stlouisfed.org/docs/api/api_key.html
 # Last.fm → free at https://www.last.fm/api/account/create
 # Itunes  → NO KEY NEEDED (public API)
 # MusicBrainz → NO KEY NEEDED (just set a user-agent string)
 
-GENIUS_TOKEN = os.getenv("GENIUS_TOKEN")
 FRED_API_KEY = os.getenv("FRED_API_KEY")
 LASTFM_API_KEY = os.getenv("LASTFM_API_KEY")
 
@@ -65,7 +63,6 @@ def year_to_period(year: int) -> str:
 # ── Rate Limits (seconds between requests) ───────────────────────────────────
 RATE = {
     "itunes": 0.2,  # ~50 req/sec
-    "genius": 0.5,  # 2 req/sec
     "lastfm": 0.22,  # ~4.5 req/sec (limit is 5/sec)
     "musicbrainz": 1.1,  # 1 req/sec (MusicBrainz strict)
     "billboard": 0.8,  # polite scraping

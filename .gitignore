@@ -27,6 +27,7 @@ share/python-wheels/
 MANIFEST
 .idea/
 data/*.db-*
+data/music_covid_bak.db
 *.md
 
 # Test

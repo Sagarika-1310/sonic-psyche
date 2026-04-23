@@ -13,7 +13,7 @@ Collected per song:
 
 Fully resumable — skips songs where status_itunes IS NOT NULL.
 """
-
+import random
 import sys, time, json, logging
 import requests
 from tqdm import tqdm
@@ -92,8 +92,7 @@ def search_itunes(title: str, artist: str) -> dict | None:
         except Exception as e:
             log.debug("iTunes Search failed ('%s'): %s", query, e)
 
-        # Respecting the rate limit defined in your config
-        time.sleep(RATE.get("itunes", 0.5))
+        time.sleep(random.uniform(2.0, 5.0))
 
     return None
 

@@ -62,9 +62,9 @@ def year_to_period(year: int) -> str:
 
 # ── Rate Limits (seconds between requests) ───────────────────────────────────
 RATE = {
-    "itunes": 0.2,  # ~50 req/sec
+    "itunes": 0.2,  # ~5 req/sec
     "lastfm": 0.22,  # ~4.5 req/sec (limit is 5/sec)
     "musicbrainz": 1.1,  # 1 req/sec (MusicBrainz strict)
-    "billboard": 0.8,  # polite scraping
-    "fred": 0.2,  # FRED is fast & generous
+    "billboard": 0.8,
+    "fred": 0.2,
 }

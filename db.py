@@ -464,6 +464,17 @@ CREATE TABLE IF NOT EXISTS lyrics_features (
 );
 """
 
+ANNUAL_GOOGLE_TRENDS = """
+CREATE TABLE annual_google_trends (
+    year INTEGER PRIMARY KEY,
+    depression_score REAL,
+    anxiety_score REAL,
+    stress_score REAL,
+    total_mental_health_index REAL,
+    fetched_at TEXT
+);
+"""
+
 
 # ═════════════════════════════════════════════════════════════════════════════
 # DATABASE HELPERS
@@ -483,7 +494,7 @@ def init_db():
     conn = get_conn()
     tables = [SONGS, ITUNES_META, LASTFM_META, MUSICBRAINZ_META,
               AUDIO_LIBROSA, AUDIO_ESSENTIA, LYRICS_RAW, LYRICS_SENTIMENT,
-              LYRICS_FEATURES, ECONOMIC_ANNUAL]
+              LYRICS_FEATURES, ECONOMIC_ANNUAL, ANNUAL_GOOGLE_TRENDS]
     for ddl in tables:
         conn.execute(ddl)
     for idx in SONGS_INDEXES:

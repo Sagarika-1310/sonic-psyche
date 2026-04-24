@@ -47,7 +47,6 @@ WHR_CSV = Path(__file__).parent.parent.parent / "data" / "world_happiness_report
 # Source: FRED, Federal Reserve Bank of St. Louis (public domain)
 FALLBACK_FRED = {
     # year: (cpi_annual_mean, inflation_rate_pct, unemployment_pct, consumer_sentiment)
-    2016: (240.0, 1.3, 4.9, 91.9),
     2017: (245.1, 2.1, 4.4, 95.9),
     2018: (251.1, 2.4, 3.9, 98.4),
     2019: (255.7, 1.8, 3.7, 96.0),
@@ -56,25 +55,29 @@ FALLBACK_FRED = {
     2022: (292.7, 8.0, 3.6, 58.5),
     2023: (304.7, 4.1, 3.6, 65.1),
     2024: (313.5, 2.9, 4.0, 69.0),
+    2025: (321.4, 2.5, 4.2, 52.2),
 }
 
 # US GDP growth (%) — World Bank / BEA
 FALLBACK_GDP = {
-    2016: 1.7, 2017: 2.3, 2018: 2.9, 2019: 2.3,
-    2020: -2.8, 2021: 5.9, 2022: 2.1, 2023: 2.5, 2024: 2.7,
+    2017: 2.3, 2018: 2.9, 2019: 2.3,
+    2020: -2.8, 2021: 5.9, 2022: 2.1, 2023: 2.5,
+    2024: 2.7, 2025: 2.4,
 }
 
 # World Happiness Report — US Life Ladder (Cantril scale 0–10)
 # Source: World Happiness Report 2024 (free public data)
 FALLBACK_WHR_US = {
-    2016: 7.10, 2017: 6.99, 2018: 6.89, 2019: 6.89,
-    2020: 7.03, 2021: 6.95, 2022: 6.98, 2023: 6.89, 2024: 6.73,
+    2017: 6.99, 2018: 6.89, 2019: 6.89,
+    2020: 7.03, 2021: 6.95, 2022: 6.98, 2023: 6.89,
+    2024: 6.73, 2025: 6.67,
 }
 
 # World Happiness Report — Global Average Life Ladder
 FALLBACK_WHR_GLOBAL = {
-    2016: 5.41, 2017: 5.40, 2018: 5.38, 2019: 5.42,
-    2020: 5.47, 2021: 5.53, 2022: 5.55, 2023: 5.54, 2024: 5.53,
+    2017: 5.40, 2018: 5.38, 2019: 5.42,
+    2020: 5.47, 2021: 5.53, 2022: 5.55, 2023: 5.54,
+    2024: 5.53, 2025: 5.52,
 }
 
 
@@ -92,9 +95,9 @@ def fetch_fred_data() -> dict:
         fred = Fred(api_key=FRED_API_KEY)
 
         # Fetch monthly series
-        cpi = fred.get_series("CPIAUCSL", "2016-01-01", "2024-12-31")
-        unemp = fred.get_series("UNRATE", "2016-01-01", "2024-12-31")
-        sent = fred.get_series("UMCSENT", "2016-01-01", "2024-12-31")
+        cpi = fred.get_series("CPIAUCSL", "2017-01-01", "2025-12-31")
+        unemp = fred.get_series("UNRATE", "2017-01-01", "2025-12-31")
+        sent = fred.get_series("UMCSENT", "2017-01-01", "2025-12-31")
 
         # Annualise
         result = {}
